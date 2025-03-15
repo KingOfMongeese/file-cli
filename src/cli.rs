@@ -23,6 +23,7 @@ pub enum Commands {
         out_file: String,
     },
 
+    /// Read data from a file, print it to console
     Read {
         /// the file to read
         in_file: String,
