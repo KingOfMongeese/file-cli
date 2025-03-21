@@ -18,17 +18,38 @@ fn main() {
             }
         }
 
-        Commands::Read { in_file, show_line_numbers} => {
+        Commands::Read {
+            in_file,
+            show_line_numbers,
+        } => {
             if let Err(value) = read(in_file, show_line_numbers) {
                 eprintln!("Error, while reading file: {}", value);
             }
         }
 
-        Commands::Append { out_file, text, add_line_numbers } => {
+        Commands::Append {
+            out_file,
+            text,
+            add_line_numbers,
+        } => {
             if let Err(value) = append(text.replace(r"\n", "\n"), out_file, add_line_numbers) {
                 eprintln!("Error, while appending to file: {}", value);
             }
         }
-    }
 
+        Commands::MakeDirs { path } => {
+            if let Err(value) = make_dirs(path) {
+                eprintln!("Error while making dir: {}", value);
+            }
+        }
+
+        Commands::RemoveDirs {
+            path,
+            print_removed_contents,
+        } => {
+            if let Err(value) = remove_all(path, print_removed_contents) {
+                eprintln!("Error while remove dir: {}", value)
+            }
+        }
+    }
 }
