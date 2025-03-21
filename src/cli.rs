@@ -33,4 +33,19 @@ pub enum Commands {
         show_line_numbers: bool,
 
     },
+
+    /// Append data to a file
+    Append {
+
+        /// the file to append to
+        #[clap(short='o', required = true)]
+        out_file: String,
+
+        /// the text to write
+        text: String,
+
+        /// include line numbers
+        #[clap(short='n', default_value_t=false)]
+        add_line_numbers: bool,
+    }
 }

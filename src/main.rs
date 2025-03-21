@@ -23,6 +23,12 @@ fn main() {
                 eprintln!("Error, while reading file: {}", value);
             }
         }
+
+        Commands::Append { out_file, text, add_line_numbers } => {
+            if let Err(value) = append(text.replace(r"\n", "\n"), out_file, add_line_numbers) {
+                eprintln!("Error, while appending to file: {}", value);
+            }
+        }
     }
 
 }
