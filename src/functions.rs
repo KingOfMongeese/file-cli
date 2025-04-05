@@ -1,6 +1,11 @@
-use std::fs::{create_dir_all, remove_dir_all, File, OpenOptions};
+use bytesize::ByteSize;
+use chrono::{DateTime, Utc};
+use prettytable::{row, Cell, Row, Table};
+use sha256::try_digest;
+use std::error::Error;
+use std::fs::{create_dir_all, metadata, read_dir, remove_dir_all, File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
-use std::path::Path;
+use std::path::{Path, absolute};
 use walkdir::WalkDir;
 
 fn get_dir_content(path: &String) -> Vec<String> {
@@ -9,7 +14,7 @@ fn get_dir_content(path: &String) -> Vec<String> {
     for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
         contents.push(entry.path().display().to_string());
     }
-    return contents;
+    contents
 }
 
 pub fn remove_all(path: String, print_removed_contents: bool) -> std::io::Result<()> {
@@ -93,4 +98,114 @@ pub fn read(in_file: String, show_line_numbers: bool) -> std::io::Result<()> {
         }
     }
     Ok(())
+}
+
+fn process_file(f_path: String) -> Result<Row, Box<dyn Error>> {
+    let file_data = metadata(&f_path)?;
+
+    let mut cells = vec![];
+
+    // file name
+    cells.push(Cell::new(&f_path));
+
+    // size in bytes
+    let size = ByteSize::b(file_data.len());
+    cells.push(Cell::new(&size.to_string()));
+
+    // Created At
+    let created_at = file_data.created()?;
+    let created_at_time: DateTime<Utc> = DateTime::from(created_at);
+    cells.push(Cell::new(&created_at_time.to_string()));
+
+    // Modifed At
+    let modded_at = file_data.modified()?;
+    let modded_at_time: DateTime<Utc> = DateTime::from(modded_at);
+    cells.push(Cell::new(&modded_at_time.to_string()));
+
+    // sha256 hash
+    let file_path = Path::new(&f_path);
+    let hash_value = try_digest(file_path)?;
+    cells.push(Cell::new(&hash_value));
+
+    Ok(Row::new(cells))
+}
+
+fn process_dir(f_path: String) -> Result<Row, Box<dyn Error>> {
+    let file_data = metadata(&f_path)?;
+    let content = get_dir_content(&f_path);
+
+    let mut cells = vec![];
+
+    // file name
+    cells.push(Cell::new(&f_path));
+
+    let mut size = ByteSize::b(0);
+    for file in &content {
+        let new_file_data = metadata(file)?;
+        size += ByteSize::b(new_file_data.len())
+    }
+    cells.push(Cell::new(&size.to_string()));
+
+    // Created At
+    let created_at = file_data.created()?;
+    let created_at_time: DateTime<Utc> = DateTime::from(created_at);
+    cells.push(Cell::new(&created_at_time.to_string()));
+
+    // Modifed At
+    let modded_at = file_data.modified()?;
+    let modded_at_time: DateTime<Utc> = DateTime::from(modded_at);
+    cells.push(Cell::new(&modded_at_time.to_string()));
+
+    Ok(Row::new(cells))
+}
+
+fn process_files(table: &mut Table, f_path: String) -> Result<(), Box<dyn Error>> {
+
+    let file_path = Path::new(&f_path);
+    let mut files_to_process: Vec<String> = vec![];
+
+    if file_path.is_dir() {
+        for entry in read_dir(file_path)? {
+            let entry = entry?;
+            let path = absolute(entry.path())?;
+            files_to_process.push(path.display().to_string());
+        }
+    }
+
+    for file in files_to_process {
+        let path_obj = Path::new(&file);
+        if path_obj.is_dir() {
+            process_wrapper(table, file, &process_dir);
+        } else {
+            process_wrapper(table, file, &process_file);
+        }
+
+    }
+
+    Ok(())
+}
+
+fn process_wrapper(table: &mut Table, file: String, func: &dyn Fn(String) -> Result<Row, Box<dyn Error>>) {
+    match func(file.clone()) {
+        Ok(row) => {
+            table.add_row(row);
+        },
+        Err(err) => println!("Error getting data for {}\nError: {}\n----------------", file, err),
+    }
+}
+
+pub fn show_info(in_file: String) {
+    let mut table = Table::new();
+
+    table.add_row(row![
+        "Name",
+        "Size",
+        "Created At",
+        "Modified At",
+        "sha256 Hash"
+    ]);
+
+    let _ = process_files(&mut table, in_file);
+
+    table.printstd();
 }

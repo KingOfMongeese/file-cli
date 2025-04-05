@@ -4,5 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bytesize = "2.0.1"
+chrono = "0.4.40"
 clap = { version = "4.5.32", features = ["derive"] }
+prettytable-rs = "0.10.0"
+sha256 = "1.6.0"
 walkdir = "2.5.0"

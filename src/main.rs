@@ -51,5 +51,7 @@ fn main() {
                 eprintln!("Error while remove dir: {}", value)
             }
         }
+
+        Commands::ShowInfo { path } => show_info(path),
     }
 }

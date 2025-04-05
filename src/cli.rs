@@ -59,4 +59,10 @@ pub enum Commands {
         #[clap(short = 'p', default_value_t = false)]
         print_removed_contents: bool,
     },
+
+    /// Show info about a file path
+    ShowInfo {
+        /// the path to show info about
+        path: String,
+    },
 }
